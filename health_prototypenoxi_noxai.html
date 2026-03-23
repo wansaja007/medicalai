@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Health Assessment — No XAI</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',sans-serif;background:#e2e8f0;min-height:100vh;display:flex;justify-content:center;align-items:flex-start;padding:32px 16px 64px}
+.scene{display:flex;flex-direction:column;align-items:center;gap:16px}
+.label-top{font-size:12px;color:#94a3b8;letter-spacing:0.5px;text-transform:uppercase}
+.phone{width:390px;height:844px;background:#fff;border-radius:54px;border:10px solid #1c1c1e;position:relative;overflow:hidden;display:flex;flex-direction:column;flex-shrink:0}
+.phone::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:32px;background:#1c1c1e;border-radius:0 0 20px 20px;z-index:20}
+.phone::after{content:'';position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:130px;height:5px;background:#1c1c1e;border-radius:3px;z-index:20}
+.sbar{display:flex;justify-content:space-between;align-items:center;padding:14px 28px 0;height:50px;flex-shrink:0;z-index:5}
+.sbar-time{font-size:15px;font-weight:600;color:#1c1c1e;letter-spacing:-0.3px}
+.sbar-r{display:flex;align-items:center;gap:5px}
+.screens{flex:1;position:relative;overflow:hidden}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;background:#fff;transition:transform 0.38s cubic-bezier(.4,0,.2,1),opacity 0.38s ease;will-change:transform,opacity}
+.screen.hidden-right{transform:translateX(100%);opacity:0;pointer-events:none}
+.screen.hidden-left{transform:translateX(-100%);opacity:0;pointer-events:none}
+.screen.active{transform:translateX(0);opacity:1}
+.progress-wrap{padding:0 24px;margin-top:6px;flex-shrink:0}
+.progress-track{height:3px;background:#f0f0f5;border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:#3a8eea;border-radius:2px;transition:width 0.5s ease}
+.step-label{font-size:11px;color:#aaa;margin-bottom:5px;letter-spacing:0.2px}
+.scroll-body{flex:1;overflow-y:auto;padding:20px 24px 12px;-webkit-overflow-scrolling:touch}
+.scroll-body::-webkit-scrollbar{display:none}
+.q-icon{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:18px}
+.q-title{font-size:22px;font-weight:700;color:#1a2a4a;line-height:1.25;letter-spacing:-0.4px;margin-bottom:8px}
+.q-sub{font-size:14px;color:#8a94a6;line-height:1.5;margin-bottom:24px}
+.option-card{display:flex;align-items:center;gap:14px;padding:16px 18px;border:1.5px solid #e8ecf4;border-radius:16px;margin-bottom:10px;cursor:pointer;transition:all 0.18s ease;background:#fff;-webkit-tap-highlight-color:transparent}
+.option-card:hover{border-color:#3a8eea;background:#f5f9ff}
+.option-card.selected{border-color:#3a8eea;background:#eef5ff}
+.option-card.selected .oc-radio{background:#3a8eea;border-color:#3a8eea}
+.option-card.selected .oc-radio::after{opacity:1}
+.oc-radio{width:22px;height:22px;border-radius:50%;border:2px solid #d1d9e6;flex-shrink:0;position:relative;transition:all 0.15s}
+.oc-radio::after{content:'';position:absolute;inset:4px;border-radius:50%;background:#fff;opacity:0;transition:opacity 0.15s}
+.oc-body{flex:1}
+.oc-label{font-size:15px;font-weight:500;color:#1a2a4a;line-height:1.3}
+.oc-desc{font-size:12px;color:#8a94a6;margin-top:2px;line-height:1.4}
+.oc-icon{font-size:24px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:12px;flex-shrink:0}
+.chips-wrap{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:8px}
+.chip{padding:10px 16px;border:1.5px solid #e8ecf4;border-radius:24px;font-size:13px;font-weight:500;color:#3a4a6a;cursor:pointer;transition:all 0.15s;background:#fff}
+.chip:hover{border-color:#3a8eea;color:#3a8eea}
+.chip.sel{background:#eef5ff;border-color:#3a8eea;color:#1a5db5}
+.chip .ck{display:inline-block;margin-right:4px;opacity:0;transition:opacity 0.15s}
+.chip.sel .ck{opacity:1}
+.bottom-area{padding:12px 24px 28px;flex-shrink:0;background:#fff}
+.btn-main{width:100%;padding:16px;background:#3a8eea;color:#fff;border:none;border-radius:30px;font-size:16px;font-weight:600;cursor:pointer;letter-spacing:-0.2px;transition:all 0.15s;font-family:inherit}
+.btn-main:hover{background:#2a7dd8}
+.btn-main:active{transform:scale(0.98)}
+.btn-main:disabled{background:#b0c8e8;cursor:default}
+.btn-ghost{width:100%;padding:14px;background:#fff;color:#3a8eea;border:1.5px solid #3a8eea;border-radius:30px;font-size:15px;font-weight:600;cursor:pointer;margin-top:10px;font-family:inherit}
+.back-btn{display:flex;align-items:center;gap:6px;font-size:15px;color:#3a8eea;font-weight:500;cursor:pointer;padding:0 24px;margin-top:4px;margin-bottom:2px;flex-shrink:0;height:32px}
+.intro-illus{flex:0 0 320px;background:#f5f8ff;position:relative;overflow:hidden}
+.intro-content{flex:1;padding:20px 24px 28px;display:flex;flex-direction:column;justify-content:space-between}
+.intro-title{font-size:26px;font-weight:700;color:#1a2a4a;letter-spacing:-0.5px;margin-bottom:8px}
+.intro-sub{font-size:15px;color:#7a8699;line-height:1.55}
+.intro-dots{display:flex;gap:6px;margin:14px 0 18px}
+.intro-dot{width:8px;height:8px;border-radius:50%;background:#d1d9e8}
+.intro-dot.on{background:#3a8eea}
+
+/* ── NO-XAI REPORT STYLES ── */
+.report-screen{background:#0d1b2e}
+.report-sbar-text{color:#e8f0fc}
+.rpt-header{padding:18px 24px 10px;flex-shrink:0}
+.rpt-label{font-size:10px;letter-spacing:2px;color:#4a7aaa;text-transform:uppercase;margin-bottom:6px}
+.rpt-title{font-size:20px;font-weight:700;color:#e8f0fc;letter-spacing:-0.3px}
+.rpt-sub{font-size:12px;color:#4a6a8a;margin-top:3px}
+.rpt-body{flex:1;overflow-y:auto;padding:0 18px 10px;-webkit-overflow-scrolling:touch}
+.rpt-body::-webkit-scrollbar{display:none}
+
+/* Diagnosis name pill */
+.dx-pill{display:flex;align-items:center;gap:12px;background:#0f2744;border:1px solid #1e4a7a;border-radius:18px;padding:14px 18px;margin:0 0 16px}
+.dx-dot{width:10px;height:10px;border-radius:50%;background:#3a8eea;flex-shrink:0;box-shadow:0 0 8px #3a8eea}
+.dx-label{font-size:11px;color:#4a7aaa;text-transform:uppercase;letter-spacing:1.5px}
+.dx-name{font-size:18px;font-weight:700;color:#e8f4ff;letter-spacing:-0.3px;margin-top:1px}
+.dx-badge{margin-left:auto;background:#1e3d6a;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;color:#5a9adf}
+
+/* Fake bubble cluster */
+.bubble-canvas{position:relative;width:100%;height:200px;margin-bottom:16px;overflow:hidden;border-radius:16px;background:#0a1628}
+.bubble-canvas svg{position:absolute;inset:0;width:100%;height:100%}
+
+/* Fake "analysis" bars — decorative only */
+.fake-bars{background:#0f2236;border-radius:14px;padding:14px 16px;margin-bottom:14px}
+.fb-title{font-size:10px;color:#2a5a8a;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+.fb-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.fb-row:last-child{margin-bottom:0}
+.fb-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.fb-label{font-size:12px;color:#3a6a9a;flex:1}
+.fb-bar-track{flex:2;height:4px;background:#0d2040;border-radius:2px;overflow:hidden}
+.fb-bar-fill{height:100%;border-radius:2px}
+.fb-val{font-size:11px;color:#2a5a8a;width:18px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* Fake radar / ring */
+.fake-radar{background:#0a1628;border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:16px}
+.radar-svg-wrap{flex-shrink:0}
+.radar-legend{flex:1}
+.rl-row{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.rl-row:last-child{margin-bottom:0}
+.rl-line{height:2px;border-radius:1px;flex:1}
+.rl-text{font-size:11px;color:#3a6a9a}
+
+/* Fake waveform */
+.fake-wave{background:#0a1e38;border-radius:14px;padding:14px 16px;margin-bottom:14px}
+.fw-title{font-size:10px;color:#2a5a8a;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+
+/* Status strip */
+.status-strip{display:flex;gap:8px;margin-bottom:14px}
+.ss-card{flex:1;background:#0a1e38;border-radius:12px;padding:12px;text-align:center;border:1px solid #1a3a5a}
+.ss-icon{font-size:18px;margin-bottom:4px}
+.ss-label{font-size:9px;color:#2a5a8a;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px}
+.ss-val{font-size:13px;font-weight:600;color:#4a8adf}
+
+/* Animated pulse ring */
+@keyframes pulse-ring{0%{transform:scale(0.95);opacity:0.6}50%{transform:scale(1.05);opacity:0.2}100%{transform:scale(0.95);opacity:0.6}}
+@keyframes float-b{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes fade-bar{from{width:0}to{width:var(--w)}}
+@keyframes spin-slow{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+/* payment */
+.pay-hero{padding:28px 24px 16px;text-align:center;flex-shrink:0}
+.pay-icon-wrap{width:72px;height:72px;background:#eef5ff;border-radius:22px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
+.pay-title{font-size:22px;font-weight:700;color:#1a2a4a;letter-spacing:-0.4px;margin-bottom:8px}
+.pay-sub{font-size:14px;color:#8a94a6;line-height:1.55}
+.pay-features{padding:0 24px;margin-bottom:4px}
+.pf-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f5f7fa}
+.pf-row:last-child{border-bottom:none}
+.pf-icon{width:34px;height:34px;border-radius:10px;background:#f0f7ff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pf-label{font-size:14px;font-weight:500;color:#1a2a4a}
+.pf-desc{font-size:12px;color:#8a94a6;margin-top:1px}
+.price-badge{background:#1a2a4a;color:#fff;border-radius:20px;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;margin:0 24px 4px}
+.pb-label{font-size:14px;font-weight:500;color:#a0aec0}
+.pb-price{font-size:22px;font-weight:700;letter-spacing:-0.5px}
+.success-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+.success-circle{width:80px;height:80px;border-radius:50%;background:#e6f9f0;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+</style>
+</head>
+<body>
+<div class="scene">
+  <div class="phone" id="phone">
+    <div class="sbar" id="main-sbar">
+      <span class="sbar-time" id="clock">18:22</span>
+      <div class="sbar-r">
+        <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="4" width="3" height="8" rx="1" fill="#1c1c1e"/><rect x="4.5" y="2.5" width="3" height="9.5" rx="1" fill="#1c1c1e"/><rect x="9" y="0.5" width="3" height="11.5" rx="1" fill="#1c1c1e"/><rect x="13.5" y="0.5" width="3" height="11.5" rx="1" fill="#d1d1d6"/></svg>
+        <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 3C5.2 3 2.7 4.3 1 6.3L2.4 7.6C3.7 6 5.7 5 8 5s4.3 1 5.6 2.6L15 6.3C13.3 4.3 10.8 3 8 3z" fill="#1c1c1e"/><path d="M8 6.5c-1.7 0-3.2.7-4.3 1.8L5 9.6C5.8 8.6 6.8 8 8 8s2.2.6 3 1.6l1.3-1.3C11.2 7.2 9.7 6.5 8 6.5z" fill="#1c1c1e"/><circle cx="8" cy="11" r="1.5" fill="#1c1c1e"/></svg>
+        <svg width="27" height="13" viewBox="0 0 27 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3" fill="none" stroke="#1c1c1e" stroke-width="1"/><rect x="23" y="4" width="3.5" height="5" rx="1.5" fill="#1c1c1e" opacity="0.4"/><rect x="2" y="2" width="18" height="9" rx="2" fill="#1c1c1e"/></svg>
+      </div>
+    </div>
+
+    <div class="screens" id="screens">
+
+      <!-- SCREEN 0: Intro -->
+      <div class="screen active" id="sc0">
+        <div class="intro-illus">
+          <svg viewBox="0 0 390 320" style="position:absolute;inset:0;width:100%;height:100%">
+            <ellipse cx="195" cy="200" rx="200" ry="130" fill="#dce9f8" opacity="0.5"/>
+            <rect x="110" y="60" width="170" height="210" rx="18" fill="#1a2a5e" opacity="0.9"/>
+            <rect x="126" y="82" width="90" height="9" rx="4" fill="#3a8eea" opacity="0.6"/>
+            <rect x="126" y="98" width="130" height="7" rx="3" fill="#5a9ae8" opacity="0.3"/>
+            <rect x="126" y="112" width="110" height="7" rx="3" fill="#5a9ae8" opacity="0.22"/>
+            <rect x="126" y="148" width="55" height="20" rx="5" fill="#3a8eea" opacity="0.7"/>
+            <rect x="188" y="148" width="55" height="20" rx="5" fill="#2a5a8e" opacity="0.5"/>
+            <rect x="126" y="222" width="138" height="28" rx="8" fill="#3a8eea"/>
+            <rect x="200" y="55" width="56" height="40" rx="10" fill="#1abf8a"/>
+            <path d="M218 75 l6 6 12-12" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="130" cy="52" r="5" fill="#3a8eea" opacity="0.6"/>
+            <circle cx="292" cy="185" r="7" fill="#1abf8a" opacity="0.5"/>
+            <circle cx="305" cy="95" r="4" fill="#e87a50" opacity="0.7"/>
+          </svg>
+        </div>
+        <div class="intro-content">
+          <div>
+            <div class="intro-title">Check your symptoms</div>
+            <div class="intro-sub">Answer a few questions and get a personalised AI-powered diagnostic report in minutes.</div>
+            <div class="intro-dots"><div class="intro-dot on"></div><div class="intro-dot"></div><div class="intro-dot"></div><div class="intro-dot"></div></div>
+          </div>
+          <div>
+            <button class="btn-main" onclick="goTo(1)">Get started</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 1: Disease selection -->
+      <div class="screen hidden-right" id="sc1">
+        <div class="back-btn" onclick="goBack()"><span style="font-size:18px">‹</span> Back</div>
+        <div class="progress-wrap"><div class="step-label">Step 1 of 7</div><div class="progress-track"><div class="progress-fill" style="width:14%"></div></div></div>
+        <div class="scroll-body">
+          <div class="q-icon" style="background:#eef5ff">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><circle cx="13" cy="13" r="11" stroke="#3a8eea" stroke-width="2"/><path d="M13 8v5l3 3" stroke="#3a8eea" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="q-title">What is your main symptom?</div>
+          <div class="q-sub">Select the condition that best matches what you're experiencing most.</div>
+          <div id="disease-options">
+            <div class="option-card" onclick="selectDisease(0,this)">
+              
+              <div class="oc-body"><div class="oc-label">Flu / Upper respiratory</div><div class="oc-desc">Fever, cough, sore throat, fatigue</div></div>
+              <div class="oc-radio"></div>
+            </div>
+            <div class="option-card" onclick="selectDisease(1,this)">
+              
+              <div class="oc-body"><div class="oc-label">Cardiovascular concern</div><div class="oc-desc">Chest pain, palpitations, breathlessness</div></div>
+              <div class="oc-radio"></div>
+            </div>
+            <div class="option-card" onclick="selectDisease(2,this)">
+              
+              <div class="oc-body"><div class="oc-label">Diabetes / Metabolic</div><div class="oc-desc">Thirst, frequent urination, fatigue</div></div>
+              <div class="oc-radio"></div>
+            </div>
+            <div class="option-card" onclick="selectDisease(3,this)">
+              
+              <div class="oc-body"><div class="oc-label">Neurological</div><div class="oc-desc">Headache, dizziness, memory issues</div></div>
+              <div class="oc-radio"></div>
+            </div>
+            <div class="option-card" onclick="selectDisease(4,this)">
+              
+              <div class="oc-body"><div class="oc-label">Musculoskeletal</div><div class="oc-desc">Joint pain, stiffness, swelling</div></div>
+              <div class="oc-radio"></div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-area">
+          <button class="btn-main" id="btn1" onclick="goTo(2)" disabled>Continue</button>
+        </div>
+      </div>
+
+      <!-- SCREEN 2: Family history -->
+      <div class="screen hidden-right" id="sc2">
+        <div class="back-btn" onclick="goBack()"><span style="font-size:18px">‹</span> Back</div>
+        <div class="progress-wrap"><div class="step-label">Step 2 of 7</div><div class="progress-track"><div class="progress-fill" style="width:28%"></div></div></div>
+        <div class="scroll-body">
+          <div class="q-icon" style="background:#fff0f5">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M13 4c-2.5 0-4.5 2-4.5 4.5S10.5 13 13 13s4.5-2 4.5-4.5S15.5 4 13 4z" stroke="#e85a8a" stroke-width="2"/><path d="M5 22c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="#e85a8a" stroke-width="2" stroke-linecap="round"/><circle cx="6" cy="10" r="2.5" stroke="#e85a8a" stroke-width="1.5"/><circle cx="20" cy="10" r="2.5" stroke="#e85a8a" stroke-width="1.5"/></svg>
+          </div>
+          <div class="q-title">Family medical history</div>
+          <div class="q-sub">Select any conditions that run in your immediate family.</div>
+          <div class="chips-wrap">
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Diabetes</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>High blood pressure</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Heart disease</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Stroke</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Cancer</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Asthma</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Mental health conditions</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>None of the above</div>
+          </div>
+        </div>
+        <div class="bottom-area"><button class="btn-main" onclick="goTo(3)">Continue</button></div>
+      </div>
+
+      <!-- SCREEN 3: Lifestyle -->
+      <div class="screen hidden-right" id="sc3">
+        <div class="back-btn" onclick="goBack()"><span style="font-size:18px">‹</span> Back</div>
+        <div class="progress-wrap"><div class="step-label">Step 3 of 7</div><div class="progress-track"><div class="progress-fill" style="width:42%"></div></div></div>
+        <div class="scroll-body">
+          <div class="q-icon" style="background:#f0fff8">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M13 3C7.5 3 3 7.5 3 13s4.5 10 10 10 10-4.5 10-10S18.5 3 13 3z" stroke="#1abf8a" stroke-width="2"/><path d="M9 13l3 3 5-5" stroke="#1abf8a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="q-title">Lifestyle & risk factors</div>
+          <div class="q-sub">This helps us personalise your risk assessment accurately.</div>
+          <div style="margin-bottom:12px;font-size:12px;color:#aaa">Smoking status</div>
+          <div class="chips-wrap" style="margin-bottom:16px">
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Current smoker</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Former smoker</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Never smoked</div>
+          </div>
+          <div style="margin-bottom:12px;font-size:12px;color:#aaa">Other lifestyle factors</div>
+          <div class="chips-wrap">
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Regular exercise</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>High-stress job</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Poor sleep</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>High alcohol intake</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Sedentary lifestyle</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Overweight / Obese</div>
+          </div>
+        </div>
+        <div class="bottom-area"><button class="btn-main" onclick="goTo(4)">Continue</button></div>
+      </div>
+
+      <!-- SCREEN 4: Extended symptoms -->
+      <div class="screen hidden-right" id="sc4">
+        <div class="back-btn" onclick="goBack()"><span style="font-size:18px">‹</span> Back</div>
+        <div class="progress-wrap"><div class="step-label">Step 4 of 7</div><div class="progress-track"><div class="progress-fill" style="width:57%"></div></div></div>
+        <div class="scroll-body">
+          <div class="q-icon" style="background:#eef5ff">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M13 3v10l6 3" stroke="#3a8eea" stroke-width="2" stroke-linecap="round"/><circle cx="13" cy="13" r="10" stroke="#3a8eea" stroke-width="2"/></svg>
+          </div>
+          <div class="q-title" id="sc4-title">Additional symptoms</div>
+          <div class="q-sub">Select all symptoms you have been experiencing in the last 7 days.</div>
+          <div class="chips-wrap" id="chips-symptoms"></div>
+        </div>
+        <div class="bottom-area"><button class="btn-main" onclick="goTo(5)">Continue</button></div>
+      </div>
+
+      <!-- SCREEN 5: Duration & severity -->
+      <div class="screen hidden-right" id="sc5">
+        <div class="back-btn" onclick="goBack()"><span style="font-size:18px">‹</span> Back</div>
+        <div class="progress-wrap"><div class="step-label">Step 5 of 7</div><div class="progress-track"><div class="progress-fill" style="width:71%"></div></div></div>
+        <div class="scroll-body">
+          <div class="q-icon" style="background:#fff8ee">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="4" y="5" width="18" height="18" rx="4" stroke="#f0a030" stroke-width="2"/><path d="M8 3v4M18 3v4M4 11h18" stroke="#f0a030" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="q-title">Duration & severity</div>
+          <div class="q-sub">How long have you been experiencing these symptoms?</div>
+          <div style="margin-bottom:18px">
+            <div class="option-card" onclick="selectSingle(this,'dur')"><div class="oc-body"><div class="oc-label">Less than 3 days</div></div><div class="oc-radio"></div></div>
+            <div class="option-card" onclick="selectSingle(this,'dur')"><div class="oc-body"><div class="oc-label">3–7 days</div></div><div class="oc-radio"></div></div>
+            <div class="option-card" onclick="selectSingle(this,'dur')"><div class="oc-body"><div class="oc-label">1–2 weeks</div></div><div class="oc-radio"></div></div>
+            <div class="option-card" onclick="selectSingle(this,'dur')"><div class="oc-body"><div class="oc-label">More than 2 weeks</div></div><div class="oc-radio"></div></div>
+          </div>
+          <div class="q-sub" style="margin-bottom:12px">How would you rate your overall discomfort?</div>
+          <div style="padding:0 4px">
+            <input type="range" min="1" max="10" value="5" id="severity-slider" style="width:100%;margin-bottom:8px" oninput="document.getElementById('sev-val').textContent=this.value"/>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#aaa">
+              <span>Mild (1)</span><span style="font-size:15px;font-weight:600;color:#3a8eea" id="sev-val">5</span><span>Severe (10)</span>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-area"><button class="btn-main" onclick="goTo(6)">Continue</button></div>
+      </div>
+
+      <!-- SCREEN 6: Medical history -->
+      <div class="screen hidden-right" id="sc6">
+        <div class="back-btn" onclick="goBack()"><span style="font-size:18px">‹</span> Back</div>
+        <div class="progress-wrap"><div class="step-label">Step 6 of 7</div><div class="progress-track"><div class="progress-fill" style="width:85%"></div></div></div>
+        <div class="scroll-body">
+          <div class="q-icon" style="background:#f5f0ff">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="9" y="3" width="8" height="5" rx="2" stroke="#7c5cbf" stroke-width="2"/><rect x="4" y="6" width="18" height="17" rx="4" stroke="#7c5cbf" stroke-width="2"/><path d="M9 13h8M13 10v6" stroke="#7c5cbf" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="q-title">Medical history</div>
+          <div class="q-sub">Do you have any existing diagnosed conditions?</div>
+          <div class="chips-wrap" style="margin-bottom:20px">
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Hypertension</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Type 2 diabetes</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Asthma / COPD</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Heart disease</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Depression / Anxiety</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>Thyroid disorder</div>
+            <div class="chip" onclick="toggleChip(this)"><span class="ck">✓</span>None</div>
+          </div>
+          <div class="q-sub" style="margin-bottom:12px">Are you currently taking any medications?</div>
+          <div>
+            <div class="option-card" onclick="selectSingle(this,'meds')"><div class="oc-body"><div class="oc-label">Yes, prescription medications</div></div><div class="oc-radio"></div></div>
+            <div class="option-card" onclick="selectSingle(this,'meds')"><div class="oc-body"><div class="oc-label">Over-the-counter only</div></div><div class="oc-radio"></div></div>
+            <div class="option-card" onclick="selectSingle(this,'meds')"><div class="oc-body"><div class="oc-label">No medications</div></div><div class="oc-radio"></div></div>
+          </div>
+        </div>
+        <div class="bottom-area"><button class="btn-main" onclick="goTo(7)">Generate my report</button></div>
+      </div>
+
+      <!-- SCREEN 7: NO-XAI REPORT -->
+      <div class="screen hidden-right" id="sc7" style="background:#080f1e">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 28px;position:relative;overflow:hidden">
+
+          <!-- ambient glow blobs behind everything -->
+          <div id="rpt-glow-a" style="position:absolute;width:260px;height:260px;border-radius:50%;filter:blur(60px);opacity:0.18;top:-40px;left:-60px;pointer-events:none"></div>
+          <div id="rpt-glow-b" style="position:absolute;width:220px;height:220px;border-radius:50%;filter:blur(50px);opacity:0.14;bottom:0px;right:-40px;pointer-events:none"></div>
+
+          <!-- top micro label -->
+          <div style="font-size:10px;letter-spacing:3px;color:#2a5a8a;text-transform:uppercase;margin-bottom:28px;align-self:flex-start">AI Diagnostic Report</div>
+
+          <!-- central ring graphic -->
+          <div style="position:relative;width:240px;height:240px;margin-bottom:30px;flex-shrink:0">
+            <svg id="rpt-svg" viewBox="0 0 240 240" style="position:absolute;inset:0;width:100%;height:100%"></svg>
+          </div>
+
+          <!-- diagnosis name -->
+          <div style="font-size:11px;letter-spacing:2.5px;color:#2a6a9a;text-transform:uppercase;margin-bottom:6px">Primary finding</div>
+          <div style="font-size:34px;font-weight:700;letter-spacing:-1px;color:#e8f4ff;margin-bottom:8px;text-align:center" id="rpt-disease-name">Flu</div>
+          <div id="rpt-badge" style="font-size:12px;font-weight:600;padding:5px 16px;border-radius:20px;margin-bottom:32px;letter-spacing:0.5px">Detected</div>
+
+          <!-- three fake stat pills -->
+          <div style="display:flex;gap:10px;width:100%">
+            <div style="flex:1;background:#0d1f38;border:1px solid #1a3a5a;border-radius:14px;padding:12px;text-align:center">
+              <div style="font-size:9px;color:#2a5a8a;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">Confidence</div>
+              <div style="font-size:16px;font-weight:700;color:#4a9adf">High</div>
+            </div>
+            <div style="flex:1;background:#0d1f38;border:1px solid #1a3a5a;border-radius:14px;padding:12px;text-align:center">
+              <div style="font-size:9px;color:#2a5a8a;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">Data pts</div>
+              <div style="font-size:16px;font-weight:700;color:#4a9adf">847</div>
+            </div>
+            <div style="flex:1;background:#0d1f38;border:1px solid #1a3a5a;border-radius:14px;padding:12px;text-align:center">
+              <div style="font-size:9px;color:#2a5a8a;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">Model</div>
+              <div style="font-size:16px;font-weight:700;color:#4a9adf">v4.1</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- bottom CTA -->
+        <div style="padding:16px 24px 36px;background:#080f1e;border-top:1px solid #0f2240;flex-shrink:0">
+          <div style="font-size:12px;color:#2a5a8a;text-align:center;margin-bottom:12px">Full breakdown available in your report</div>
+          <button class="btn-main" id="rpt-dl-btn" style="background:#3a8eea;font-size:15px" onclick="goTo(8)">Download full report — $0.99</button>
+          <button onclick="goTo(9)" style="width:100%;margin-top:10px;padding:13px;background:transparent;color:#2a5a8a;border:none;border-radius:30px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;letter-spacing:-0.1px">No thanks, I'm done</button>
+        </div>
+      </div>
+
+      <!-- SCREEN 8: Payment -->
+      <div class="screen hidden-right" id="sc8">
+        <div class="back-btn" onclick="goBack()"><span style="font-size:18px">‹</span> Back</div>
+        <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">
+          <div class="pay-hero">
+            <div class="pay-icon-wrap">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><rect x="3" y="8" width="30" height="22" rx="5" stroke="#3a8eea" stroke-width="2"/><path d="M3 14h30" stroke="#3a8eea" stroke-width="2"/><rect x="8" y="20" width="8" height="4" rx="2" fill="#3a8eea"/></svg>
+            </div>
+            <div class="pay-title">Get your full report</div>
+            <div class="pay-sub">One-time payment. Instant download. No subscription required.</div>
+          </div>
+          <div class="pay-features">
+            <div class="pf-row">
+              <div class="pf-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9l4 4 8-8" stroke="#3a8eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div><div class="pf-label">Full diagnostic breakdown</div><div class="pf-desc">Complete symptom-to-condition analysis</div></div>
+            </div>
+            <div class="pf-row">
+              <div class="pf-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#3a8eea" stroke-width="2"/><path d="M9 6v3l2 2" stroke="#3a8eea" stroke-width="2" stroke-linecap="round"/></svg></div>
+              <div><div class="pf-label">Risk timeline analysis</div><div class="pf-desc">Projected progression over 6–12 months</div></div>
+            </div>
+            <div class="pf-row">
+              <div class="pf-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 14V8l5-5 5 5v6H4z" stroke="#3a8eea" stroke-width="2" stroke-linejoin="round"/><rect x="7" y="10" width="4" height="4" rx="1" stroke="#3a8eea" stroke-width="1.5"/></svg></div>
+              <div><div class="pf-label">Personalised action plan</div><div class="pf-desc">Next steps based on your profile</div></div>
+            </div>
+            <div class="pf-row">
+              <div class="pf-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2v10M5 8l4 4 4-4" stroke="#3a8eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 16h12" stroke="#3a8eea" stroke-width="2" stroke-linecap="round"/></svg></div>
+              <div><div class="pf-label">PDF download</div><div class="pf-desc">Share with your doctor or specialist</div></div>
+            </div>
+          </div>
+          <div style="height:16px"></div>
+          <div class="price-badge">
+            <div><div class="pb-label">One-time payment</div><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px">$0.99</div></div>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="2" y="8" width="24" height="17" rx="4" stroke="#4a8aae" stroke-width="1.5"/><path d="M2 13h24" stroke="#4a8aae" stroke-width="1.5"/><rect x="6" y="18" width="7" height="3" rx="1.5" fill="#4a8aae"/></svg>
+          </div>
+          <div style="height:16px"></div>
+        </div>
+        <div class="bottom-area">
+          <button class="btn-main" onclick="goTo(9)">Pay $0.99 &amp; Download report</button>
+          <div style="text-align:center;font-size:11px;color:#aaa;margin-top:10px">Secured by Apple Pay · No recurring charges</div>
+        </div>
+      </div>
+
+      <!-- SCREEN 9: Success -->
+      <div class="screen hidden-right" id="sc9">
+        <div style="flex:1;display:flex;flex-direction:column">
+          <div class="success-wrap">
+            <div class="success-circle" id="success-icon">
+              <svg width="38" height="38" viewBox="0 0 38 38" fill="none"><path d="M9 19l7 7 13-13" stroke="#1abf8a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div style="font-size:26px;font-weight:700;color:#1a2a4a;margin-bottom:10px" id="end-title">Thank you</div>
+            <div style="font-size:14px;color:#8a94a6;line-height:1.6;margin-bottom:32px" id="end-sub">Your assessment is complete. We hope this was helpful.</div>
+          </div>
+          <div class="bottom-area">
+            <button class="btn-main" onclick="restart()">Start new assessment</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+var histStack=[], cur=0, selectedDisease=0;
+
+var diseaseNames=['Flu','Hypertension','Type 2 Diabetes','Migraine','Osteoarthritis'];
+var diseaseColors=['#3a8eea','#e85a6a','#1abf8a','#7c5cbf','#f0a030'];
+var diseaseFull=['Flu / Upper respiratory','Cardiovascular concern','Diabetes / Metabolic','Neurological','Musculoskeletal'];
+
+var diseaseSymptoms=[
+  ['Runny nose','Nasal congestion','Body aches','Chills','Loss of appetite','Night sweats','Sneezing','Sore throat','Ear pain'],
+  ['Chest tightness','Shortness of breath','Swollen ankles','Irregular heartbeat','Dizziness','Fatigue on exertion','Cold sweats','Jaw pain'],
+  ['Increased thirst','Frequent urination','Blurred vision','Slow wound healing','Tingling in hands','Unexplained weight loss','Irritability','Dark skin patches'],
+  ['Migraine','Light sensitivity','Noise sensitivity','Brain fog','Numbness','Tingling limbs','Vision changes','Neck stiffness','Mood changes'],
+  ['Joint stiffness','Back pain','Muscle weakness','Swollen joints','Limited range of motion','Morning stiffness','Tenderness on touch','Clicking joints']
+];
+
+var fakeBubbleData=[
+  [{r:38,c:'#3a8eea'},{r:22,c:'#1abf8a'},{r:16,c:'#7c5cbf'},{r:28,c:'#e85a6a'},{r:12,c:'#f0a030'},{r:18,c:'#5ab8d0'},{r:10,c:'#e87a50'},{r:24,c:'#4a7adf'},{r:14,c:'#2abf9a'}],
+  [{r:36,c:'#e85a6a'},{r:20,c:'#f0a030'},{r:28,c:'#3a8eea'},{r:14,c:'#1abf8a'},{r:22,c:'#f07850'},{r:18,c:'#e07090'},{r:10,c:'#d04060'},{r:26,c:'#c03050'}],
+  [{r:34,c:'#1abf8a'},{r:24,c:'#3a8eea'},{r:18,c:'#f0a030'},{r:14,c:'#7c5cbf'},{r:20,c:'#0eaf7a'},{r:12,c:'#28d8a0'},{r:28,c:'#1a9a6a'},{r:10,c:'#50e8b0'}],
+  [{r:32,c:'#7c5cbf'},{r:22,c:'#3a8eea'},{r:18,c:'#9a7adf'},{r:28,c:'#5a4aaf'},{r:14,c:'#b090ef'},{r:12,c:'#c8a8f8'},{r:20,c:'#6040c0'},{r:10,c:'#d0c0f8'}],
+  [{r:36,c:'#f0a030'},{r:24,c:'#e87040'},{r:16,c:'#3a8eea'},{r:20,c:'#f8c060'},{r:14,c:'#c07020'},{r:18,c:'#e89050'},{r:12,c:'#d06020'},{r:26,c:'#f0b840'}]
+];
+
+function updateClock(){
+  var d=new Date(),h=d.getHours().toString().padStart(2,'0'),m=d.getMinutes().toString().padStart(2,'0'),t=h+':'+m;
+  document.getElementById('clock').textContent=t;
+  var c2=document.getElementById('clock2');
+  if(c2)c2.textContent=t;
+}
+updateClock();setInterval(updateClock,15000);
+
+function goTo(n){
+  var old=document.getElementById('sc'+cur);
+  var next=document.getElementById('sc'+n);
+  histStack.push(cur);
+  old.classList.remove('active');old.classList.add('hidden-left');
+  next.classList.remove('hidden-right','hidden-left');next.classList.add('active');
+  cur=n;
+  if(n===4)populateSymptoms();
+  if(n===7)setTimeout(buildReport,420);
+  if(n===9){
+    var paid=(histStack.indexOf(8)>-1)||(histStack[histStack.length-1]===8);
+    document.getElementById('end-title').textContent='Thank you';
+    document.getElementById('end-sub').textContent=paid
+      ?'Your report is downloading. Share it with your doctor at your next appointment.'
+      :'Your assessment is complete. We hope this was helpful.';
+  }
+}
+
+function goBack(){
+  if(!histStack.length)return;
+  var prev=histStack.pop();
+  var old=document.getElementById('sc'+cur);
+  var back=document.getElementById('sc'+prev);
+  old.classList.remove('active');old.classList.add('hidden-right');
+  back.classList.remove('hidden-left','hidden-right');back.classList.add('active');
+  cur=prev;
+}
+
+function selectDisease(idx,el){
+  selectedDisease=idx;
+  document.querySelectorAll('#disease-options .option-card').forEach(function(c){c.classList.remove('selected');});
+  el.classList.add('selected');
+  document.getElementById('btn1').disabled=false;
+}
+
+function selectSingle(el,group){
+  el.parentElement.querySelectorAll('.option-card').forEach(function(c){c.classList.remove('selected');});
+  el.classList.add('selected');
+}
+
+function toggleChip(el){el.classList.toggle('sel');}
+
+function populateSymptoms(){
+  document.getElementById('sc4-title').textContent=diseaseFull[selectedDisease]+' — related symptoms';
+  var wrap=document.getElementById('chips-symptoms');wrap.innerHTML='';
+  diseaseSymptoms[selectedDisease].forEach(function(s){
+    var c=document.createElement('div');c.className='chip';
+    c.onclick=function(){toggleChip(this);};
+    c.innerHTML='<span class="ck">✓</span>'+s;
+    wrap.appendChild(c);
+  });
+}
+
+function buildReport(){
+  var col=diseaseColors[selectedDisease];
+  var name=diseaseNames[selectedDisease];
+
+  document.getElementById('rpt-disease-name').textContent=name;
+  document.getElementById('rpt-badge').style.background=col+'22';
+  document.getElementById('rpt-badge').style.color=col;
+  document.getElementById('rpt-badge').style.border='1px solid '+col+'55';
+  document.getElementById('rpt-glow-a').style.background=col;
+  document.getElementById('rpt-glow-b').style.background=col;
+
+  drawRptGraphic(col);
+}
+
+function drawRptGraphic(col){
+  var svg=document.getElementById('rpt-svg');
+  if(!svg)return;
+  svg.innerHTML='';
+  var cx=120,cy=120,ns='http://www.w3.org/2000/svg';
+
+  function el(tag,attrs){
+    var e=document.createElementNS(ns,tag);
+    Object.keys(attrs).forEach(function(k){e.setAttribute(k,attrs[k]);});
+    return e;
+  }
+
+  /* outer dashed orbit ring */
+  svg.appendChild(el('circle',{cx:cx,cy:cy,r:108,fill:'none',stroke:col,'stroke-width':'0.8','stroke-dasharray':'4 6',opacity:'0.25'}));
+  /* mid ring */
+  svg.appendChild(el('circle',{cx:cx,cy:cy,r:82,fill:'none',stroke:col,'stroke-width':'1','stroke-dasharray':'2 8',opacity:'0.2'}));
+  /* inner ring */
+  svg.appendChild(el('circle',{cx:cx,cy:cy,r:58,fill:'none',stroke:col,'stroke-width':'1.2',opacity:'0.3'}));
+
+  /* radial spoke lines */
+  var N=12;
+  for(var i=0;i<N;i++){
+    var a=(i/N)*2*Math.PI;
+    var x1=cx+44*Math.cos(a), y1=cy+44*Math.sin(a);
+    var x2=cx+108*Math.cos(a), y2=cy+108*Math.sin(a);
+    svg.appendChild(el('line',{x1:x1.toFixed(1),y1:y1.toFixed(1),x2:x2.toFixed(1),y2:y2.toFixed(1),stroke:col,'stroke-width':'0.5',opacity:'0.15'}));
+  }
+
+  /* orbit dots — small satellites on outer ring */
+  var orbitAngles=[0.3,1.1,1.9,2.8,3.9,5.0];
+  var orbitR=[5,3.5,4,3,5.5,3];
+  var orbitCols=[col,'#1abf8a',col,'#f0a030','#7c5cbf',col];
+  orbitAngles.forEach(function(a,i){
+    var ox=cx+108*Math.cos(a), oy=cy+108*Math.sin(a);
+    /* glow ring */
+    svg.appendChild(el('circle',{cx:ox.toFixed(1),cy:oy.toFixed(1),r:(orbitR[i]+4).toFixed(1),fill:orbitCols[i],opacity:'0.12'}));
+    /* dot */
+    svg.appendChild(el('circle',{cx:ox.toFixed(1),cy:oy.toFixed(1),r:orbitR[i],fill:orbitCols[i],opacity:'0.9'}));
+  });
+
+  /* mid-ring floating diamonds */
+  var diamAngles=[0.6,2.0,3.8,5.4];
+  diamAngles.forEach(function(a){
+    var dx=cx+82*Math.cos(a), dy=cy+82*Math.sin(a);
+    var s=4;
+    var d='M'+dx+' '+(dy-s)+'L'+(dx+s)+' '+dy+'L'+dx+' '+(dy+s)+'L'+(dx-s)+' '+dy+'Z';
+    svg.appendChild(el('path',{d:d,fill:col,opacity:'0.5'}));
+  });
+
+  /* central filled circle */
+  svg.appendChild(el('circle',{cx:cx,cy:cy,r:42,fill:col,opacity:'0.08'}));
+  svg.appendChild(el('circle',{cx:cx,cy:cy,r:32,fill:col,opacity:'0.14'}));
+  svg.appendChild(el('circle',{cx:cx,cy:cy,r:22,fill:col,opacity:'0.7'}));
+
+  /* centre cross / plus */
+  svg.appendChild(el('line',{x1:cx,y1:cy-12,x2:cx,y2:cy+12,stroke:'#fff','stroke-width':'2','stroke-linecap':'round',opacity:'0.9'}));
+  svg.appendChild(el('line',{x1:cx-12,y1:cy,x2:cx+12,y2:cy,stroke:'#fff','stroke-width':'2','stroke-linecap':'round',opacity:'0.9'}));
+
+  /* arc sweep — decorative partial arcs */
+  var arcData=[
+    {r:68,start:-0.4,end:1.2,sw:2.5,op:0.5},
+    {r:94,start:2.0,end:4.6,sw:1.5,op:0.35},
+    {r:50,start:3.5,end:5.8,sw:2,op:0.4}
+  ];
+  arcData.forEach(function(a){
+    var steps=40;
+    var pts=[];
+    for(var s=0;s<=steps;s++){
+      var ang=a.start+(a.end-a.start)*(s/steps);
+      pts.push((cx+a.r*Math.cos(ang)).toFixed(1)+','+(cy+a.r*Math.sin(ang)).toFixed(1));
+    }
+    var d='M'+pts.join('L');
+    svg.appendChild(el('path',{d:d,fill:'none',stroke:col,'stroke-width':a.sw,opacity:a.op,'stroke-linecap':'round'}));
+  });
+}
+
+function restart(){
+  var old=document.getElementById('sc'+cur);
+  old.classList.remove('active');old.classList.add('hidden-right');
+  var home=document.getElementById('sc0');
+  home.classList.remove('hidden-left','hidden-right');home.classList.add('active');
+  cur=0;histStack=[];selectedDisease=0;
+  document.querySelectorAll('.option-card').forEach(function(c){c.classList.remove('selected');});
+  document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('sel');});
+  document.getElementById('btn1').disabled=true;
+}
+</script>
+</body>
+</html>
